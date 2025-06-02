@@ -58,7 +58,6 @@ func main() {
 		command := cleanInput(input)
 
 		supportedCommand, ok := supportedCommands[command[0]]
-
 		if ok {
 			err := supportedCommand.callback(&config)
 			if err != nil {
