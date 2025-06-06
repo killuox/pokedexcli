@@ -52,6 +52,11 @@ func init() {
 			description: "Inspect a pokemon in your pokedex",
 			callback:    commandInspect,
 		},
+		"pokedex": {
+			name:        "pokedex",
+			description: "Check your pokedex",
+			callback:    commandPokedex,
+		},
 		"help": {
 			name:        "help",
 			description: "Displays a help message",
@@ -198,6 +203,21 @@ func commandInspect(config *Config) error {
 		fmt.Printf("- %s\n", pokemonType.Type.Name)
 	}
 
+	return nil
+}
+
+func commandPokedex(config *Config) error {
+	pokemonsCaught := config.Pokedex.Inventory.Pokemons
+
+	fmt.Print("Your pokedex:\n")
+
+	if len(pokemonsCaught) == 0 {
+		fmt.Print("You have not caught any pokemon yet!\n")
+	}
+
+	for _, p := range pokemonsCaught {
+		fmt.Printf("- %s\n", p.Name)
+	}
 	return nil
 }
 
