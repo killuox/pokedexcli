@@ -47,6 +47,11 @@ func init() {
 			description: "Thow a pokeball to a desired pokemon",
 			callback:    commandCatch,
 		},
+		"inspect": {
+			name:        "inspect",
+			description: "Inspect a pokemon in your pokedex",
+			callback:    commandInspect,
+		},
 		"help": {
 			name:        "help",
 			description: "Displays a help message",
@@ -65,6 +70,7 @@ func main() {
 	config := Config{
 		Pokedex: pokedex.PokedexConfig{
 			NextLocation: pokedex.BaseUrl + "/location-area",
+			Inventory:    pokedex.NewUserInventory(),
 		},
 		Params: ConfigParams{},
 	}
@@ -86,7 +92,7 @@ func main() {
 				fmt.Print(err)
 			}
 		} else {
-			fmt.Print("Unknown command.")
+			fmt.Print("Unknown command.\n")
 		}
 		fmt.Print("Pokedex > ")
 	}
@@ -95,7 +101,7 @@ func main() {
 func commandMap(config *Config) error {
 	res, err := pokedex.GetLocations(config.Pokedex.NextLocation)
 	if err != nil {
-		return fmt.Errorf("Error getting locations: %s", err)
+		return fmt.Errorf("Error getting locations: %s\n", err)
 	}
 
 	for _, location := range res.Results {
@@ -111,7 +117,7 @@ func commandMap(config *Config) error {
 func commandMapBack(config *Config) error {
 	res, err := pokedex.GetLocations(config.Pokedex.PreviousLocation)
 	if err != nil {
-		return fmt.Errorf("Error getting locations: %s", err)
+		return fmt.Errorf("Error getting locations: %s\n", err)
 	}
 
 	for _, location := range res.Results {
@@ -127,12 +133,12 @@ func commandMapBack(config *Config) error {
 func commandExplore(config *Config) error {
 	id := config.Params.id
 	if id == "" {
-		return fmt.Errorf("Please provide the location name or id to explore")
+		return fmt.Errorf("Please provide the location name or id to explore\n")
 	}
 	fmt.Printf("Exploring %s...\n", id)
 	res, err := pokedex.GetLocation(id)
 	if err != nil {
-		return fmt.Errorf("Error getting location are %s", err)
+		return fmt.Errorf("Error getting location are %s\n", err)
 	}
 
 	fmt.Print("Found Pokemon:\n")
@@ -147,12 +153,49 @@ func commandExplore(config *Config) error {
 func commandCatch(config *Config) error {
 	id := config.Params.id
 	if id == "" {
-		return fmt.Errorf("Please provide the location name or id to explore")
+		return fmt.Errorf("Please provide the pokemon name or id to catch\n")
 	}
 	fmt.Printf("Throwing a Pokeball at %s...\n", id)
-	res, err := pokedex.GetPokemon(id)
+	pokemon, err := pokedex.GetPokemon(id)
 	if err != nil {
-		return fmt.Errorf("Error getting location are %s", err)
+		return fmt.Errorf("Error getting location are %s\n", err)
+	}
+
+	if pokedex.TryToCatch(pokemon) {
+		fmt.Printf("%s was caught!\n", pokemon.Name)
+		config.Pokedex.Inventory.Add(pokemon)
+	} else {
+		fmt.Printf("%s escaped!\n", pokemon.Name)
+	}
+
+	return nil
+}
+
+func commandInspect(config *Config) error {
+	id := config.Params.id
+	if id == "" {
+		return fmt.Errorf("Please provide the pokemon name or id to inspect\n")
+	}
+
+	pokemonsCaught := config.Pokedex.Inventory.Pokemons
+
+	p, ok := pokemonsCaught[id]
+	if !ok {
+		return fmt.Errorf("You have not caught that pokemon\n")
+	}
+
+	fmt.Printf("Name: %s\n", p.Name)
+	fmt.Printf("Height: %v\n", p.Height)
+	fmt.Printf("Weight: %v\n", p.Weight)
+
+	fmt.Printf("Stats:\n")
+	for _, stat := range p.Stats {
+		fmt.Printf("-%s: %v\n", stat.Stat.Name, stat.BaseStat)
+	}
+
+	fmt.Printf("Types:\n")
+	for _, pokemonType := range p.Types {
+		fmt.Printf("- %s\n", pokemonType.Type.Name)
 	}
 
 	return nil
